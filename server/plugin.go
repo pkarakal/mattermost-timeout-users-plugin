@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost-server/server/v8/plugin"
 )
 
-// Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
-type Plugin struct {
+// TimeoutUsersPlugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
+type TimeoutUsersPlugin struct {
 	plugin.MattermostPlugin
 
 	// configurationLock synchronizes access to the configuration.
@@ -21,8 +21,6 @@ type Plugin struct {
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
-func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
+func (p *TimeoutUsersPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello, world!")
 }
-
-// See https://developers.mattermost.com/extend/plugins/server/reference/
