@@ -1,27 +1,39 @@
 {
-    "id": "com.pkarakal.mattermost-timeout-users-plugin",
-    "name": "Timeout Users",
-    "description": "This plugin blocks users from reusing channel wide mentions for a given period. This should reduce the channel wide pings and users will learn to use those with care.",
-    "homepage_url": "https://github.com/pkarakal/mattermost-timeout-users-plugin",
-    "support_url": "https://github.com/pkarakal/mattermost-timeout-users-plugin/issues",
-    "icon_path": "assets/starter-template-icon.svg",
-    "version": "0.1.0",
-    "min_server_version": "6.2.1",
-    "server": {
-        "executables": {
-            "linux-amd64": "server/dist/plugin-linux-amd64",
-            "linux-arm64": "server/dist/plugin-linux-arm64",
-            "darwin-amd64": "server/dist/plugin-darwin-amd64",
-            "darwin-arm64": "server/dist/plugin-darwin-arm64",
-            "windows-amd64": "server/dist/plugin-windows-amd64.exe"
-        }
-    },
-    "webapp": {
-        "bundle_path": "webapp/dist/main.js"
-    },
-    "settings_schema": {
-        "header": "",
-        "footer": "",
-        "settings": []
+  "id": "com.pkarakal.mattermost-timeout-users-plugin",
+  "name": "Timeout Users",
+  "description": "This plugin blocks users from reusing channel wide mentions for a given period. This should reduce the channel wide pings and users will learn to use those with care.",
+  "homepage_url": "https://github.com/pkarakal/mattermost-timeout-users-plugin",
+  "support_url": "https://github.com/pkarakal/mattermost-timeout-users-plugin/issues",
+  "icon_path": "assets/starter-template-icon.svg",
+  "version": "0.1.0",
+  "min_server_version": "6.2.1",
+  "server": {
+    "executables": {
+      "linux-amd64": "server/dist/plugin-linux-amd64",
+      "linux-arm64": "server/dist/plugin-linux-arm64",
+      "darwin-amd64": "server/dist/plugin-darwin-amd64",
+      "darwin-arm64": "server/dist/plugin-darwin-arm64",
+      "windows-amd64": "server/dist/plugin-windows-amd64.exe"
     }
+  },
+  "settings_schema": {
+    "header": "",
+    "footer": "",
+    "settings": [
+      {
+        "key": "channel_mentions_threshold",
+        "display_name": "Channel Wide Mention Threshold",
+        "type": "number",
+        "help_text": "When true, an extra feature will be enabled!",
+        "default": 1
+      },
+      {
+        "key": "user_timeout_in_seconds",
+        "display_name": "User Timeout In Seconds",
+        "type": "number",
+        "help_text": "When true, an extra feature will be enabled!",
+        "default": 3600
+      }
+    ]
+  }
 }
