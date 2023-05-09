@@ -18,6 +18,9 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
+	Disabled                 bool
+	ChannelMentionsThreshold int   `json:"channel_mentions_threshold"`
+	UserTimeoutInSeconds     int64 `json:"user_timeout_in_seconds"`
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
