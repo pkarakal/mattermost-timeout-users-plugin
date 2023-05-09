@@ -3,6 +3,7 @@ module github.com/pkarakal/mattermost-timeout-users-plugin
 go 1.20
 
 require (
+	github.com/mattermost/logr/v2 v2.0.16
 	github.com/mattermost/mattermost-server/server/v8 v8.0.0-20230505170148-212ac800a6e3
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.2
@@ -30,7 +31,6 @@ require (
 	github.com/lib/pq v1.10.7 // indirect
 	github.com/mattermost/go-i18n v1.11.1-0.20211013152124-5c415071e404 // indirect
 	github.com/mattermost/ldap v0.0.0-20201202150706-ee0e6284187d // indirect
-	github.com/mattermost/logr/v2 v2.0.16 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/mattermost/logr/v2"
+	logr "github.com/mattermost/logr/v2"
 	"github.com/mattermost/mattermost-server/server/v8/model"
 	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
 	"sort"
