@@ -4,7 +4,10 @@ import (
 	"fmt"
 	logr "github.com/mattermost/logr/v2"
 	"github.com/mattermost/mattermost-server/server/v8/model"
+	"github.com/mattermost/mattermost-server/server/v8/platform/shared/i18n"
 	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
+	"github.com/pkg/errors"
+	"path"
 	"sort"
 	"strings"
 	"sync"
@@ -87,12 +90,23 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 
 	userPosts := filterUserChannelMentions(posts, post.UserId)
 
+	user, err := p.API.GetUser(post.UserId)
+	if err != nil {
+		p.API.LogError(fmt.Sprintf("Couldn't get user with id %s", post.UserId))
+		return nil, fmt.Sprintf("Couldn't get user with id %s", post.UserId)
+	}
+
 	if len(userPosts) > p.configuration.ChannelMentionsThreshold {
 		sortPostsByCreationDate(userPosts)
 		mostRecent := userPosts[0]
-		timeoutExpiring := time.Unix(mostRecent.CreateAt, 0).Add(time.Duration(p.configuration.UserTimeoutInSeconds) * time.Second)
+		timeoutExpiring := time.UnixMilli(mostRecent.CreateAt).Add(time.Duration(p.configuration.UserTimeoutInSeconds) * time.Second)
 		remainingTimeout := timeoutExpiring.Sub(time.Now())
-		return nil, fmt.Sprintf("You have reached the threshold of channel wide mentions of %d. You will be able to post a new message in %f", p.configuration.ChannelMentionsThreshold-1, remainingTimeout.Seconds())
+		err := p.createEphemeralPost(timeoutExpiring, post.UserId, post.ChannelId, user)
+		if err != nil {
+			p.API.LogError("Couldn't post ephemeral message for message rejection")
+			return nil, "Couldn't post ephemeral message"
+		}
+		return nil, fmt.Sprintf("You have reached the threshold of channel wide mentions of %d. You will be able to post a new message in %fs", p.configuration.ChannelMentionsThreshold-1, remainingTimeout.Seconds())
 	}
 
 	// Otherwise, allow the post through.
@@ -113,6 +127,28 @@ func filterUserChannelMentions(posts []*model.Post, userID string) []*model.Post
 		}
 	}
 	return filteredPosts
+}
+
+func (p *TimeoutUsersPlugin) createEphemeralPost(expiring time.Time, user, channel string, sender *model.User) error {
+	bundle, err := p.API.GetBundlePath()
+	if err != nil {
+		return errors.New("couldn't get bundle path")
+	}
+	locale, err := i18n.GetTranslationFuncForDir(path.Join(bundle, "assets", "i18n"))
+	T := locale(sender.Locale)
+	post := model.Post{
+		UserId:    user,
+		ChannelId: channel,
+		Message: fmt.Sprintf("%s\n%s",
+			T("com.pkarakal.mattermost_timeout_users_plugin.timeout.title"),
+			T("com.pkarakal.mattermost_timeout_users_plugin.timeout.message", map[string]any{"Threshold": p.configuration.ChannelMentionsThreshold, "Expiring": expiring.Format(time.RFC1123)})),
+		Type: model.PostTypeEphemeral,
+	}
+	res := p.API.SendEphemeralPost(user, &post)
+	if res == nil {
+		return errors.New("couldn't post ephemeral post to channel")
+	}
+	return nil
 }
 
 func filterChannelWideMentions(message string) bool {

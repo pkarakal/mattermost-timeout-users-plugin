@@ -1,0 +1,10 @@
+[
+  {
+    "id": "com.pkarakal.mattermost_timeout_users_plugin.timeout.title",
+    "translation": "You have reached the threshold of @channel usages."
+  },
+  {
+    "id": "com.pkarakal.mattermost_timeout_users_plugin.timeout.message",
+    "translation": "Your administrator has set the threshold of channel wide mentions to {{.Threshold}}, which you have reached. You will be able to repost with a channel wide mention after {{.Expiring}}."
+  }
+]

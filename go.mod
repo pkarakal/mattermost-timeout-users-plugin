@@ -6,7 +6,6 @@ require (
 	github.com/mattermost/logr/v2 v2.0.16
 	github.com/mattermost/mattermost-server/server/v8 v8.0.0-20230505170148-212ac800a6e3
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.8.2
 )
 
 require (
@@ -46,6 +45,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
