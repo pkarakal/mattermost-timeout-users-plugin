@@ -1,6 +1,6 @@
 module github.com/pkarakal/mattermost-timeout-users-plugin
 
-go 1.20
+go 1.18
 
 require (
 	github.com/mattermost/logr/v2 v2.0.16
