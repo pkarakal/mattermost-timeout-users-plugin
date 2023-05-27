@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	logr "github.com/mattermost/logr/v2"
-	"github.com/mattermost/mattermost-server/server/v8/model"
-	"github.com/mattermost/mattermost-server/server/v8/platform/shared/i18n"
-	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
-	"github.com/pkg/errors"
 	"path"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mattermost/logr/v2"
+	"github.com/mattermost/mattermost-server/server/v8/model"
+	"github.com/mattermost/mattermost-server/server/v8/platform/shared/i18n"
+	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-server/server/v8/plugin"
 )
@@ -61,11 +62,11 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 	posts := make([]*model.Post, 0)
 
 	for _, channel := range userChannels {
-		res, err := p.API.GetPostsSince(channel.ChannelId, dateSince.Unix())
-		if err != nil {
+		res, postErr := p.API.GetPostsSince(channel.ChannelId, dateSince.Unix())
+		if postErr != nil {
 			p.API.LogError("Couldn't get messages in channel", mlog.Field{
 				Type:   logr.ErrorType,
-				String: err.Error(),
+				String: postErr.Error(),
 			})
 			return nil, fmt.Sprintf("Couldn't get messages in channel %s", channel.ChannelId)
 		}
@@ -77,7 +78,7 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 			if !res.HasNext {
 				break
 			}
-			res, err := p.API.GetPostsAfter(channel.ChannelId, res.NextPostId, page, 1000)
+			res, err = p.API.GetPostsAfter(channel.ChannelId, res.NextPostId, page, 1000)
 			if err != nil {
 				p.API.LogError(fmt.Sprintf("Couldn't get posts in channel after %s", res.NextPostId))
 				return nil, fmt.Sprintf("Couldn't get posts in channel after %s", res.NextPostId)
@@ -100,7 +101,7 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 		sortPostsByCreationDate(userPosts)
 		mostRecent := userPosts[0]
 		timeoutExpiring := time.UnixMilli(mostRecent.CreateAt).Add(time.Duration(p.configuration.UserTimeoutInSeconds) * time.Second)
-		remainingTimeout := timeoutExpiring.Sub(time.Now())
+		remainingTimeout := time.Until(timeoutExpiring)
 		err := p.createEphemeralPost(timeoutExpiring, post.UserId, post.ChannelId, user)
 		if err != nil {
 			p.API.LogError("Couldn't post ephemeral message for message rejection")
@@ -134,7 +135,7 @@ func (p *TimeoutUsersPlugin) createEphemeralPost(expiring time.Time, user, chann
 	if err != nil {
 		return errors.New("couldn't get bundle path")
 	}
-	locale, err := i18n.GetTranslationFuncForDir(path.Join(bundle, "assets", "i18n"))
+	locale, _ := i18n.GetTranslationFuncForDir(path.Join(bundle, "assets", "i18n"))
 	T := locale(sender.Locale)
 	post := model.Post{
 		UserId:    user,
