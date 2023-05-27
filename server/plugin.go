@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	logr "github.com/mattermost/logr/v2"
-	"github.com/mattermost/mattermost-server/server/v8/model"
-	"github.com/mattermost/mattermost-server/server/v8/platform/shared/i18n"
-	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
-	"github.com/pkg/errors"
 	"path"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mattermost/logr/v2"
+	"github.com/mattermost/mattermost-server/server/v8/model"
+	"github.com/mattermost/mattermost-server/server/v8/platform/shared/i18n"
+	"github.com/mattermost/mattermost-server/server/v8/platform/shared/mlog"
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-server/server/v8/plugin"
 )
@@ -58,34 +59,9 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 		return nil, "Couldn't get user channel memberships"
 	}
 
-	posts := make([]*model.Post, 0)
-
-	for _, channel := range userChannels {
-		res, err := p.API.GetPostsSince(channel.ChannelId, dateSince.Unix())
-		if err != nil {
-			p.API.LogError("Couldn't get messages in channel", mlog.Field{
-				Type:   logr.ErrorType,
-				String: err.Error(),
-			})
-			return nil, fmt.Sprintf("Couldn't get messages in channel %s", channel.ChannelId)
-		}
-		for _, v := range res.Posts {
-			posts = append(posts, v)
-		}
-		for {
-			page := 0
-			if !res.HasNext {
-				break
-			}
-			res, err := p.API.GetPostsAfter(channel.ChannelId, res.NextPostId, page, 1000)
-			if err != nil {
-				p.API.LogError(fmt.Sprintf("Couldn't get posts in channel after %s", res.NextPostId))
-				return nil, fmt.Sprintf("Couldn't get posts in channel after %s", res.NextPostId)
-			}
-			for _, v := range res.Posts {
-				posts = append(posts, v)
-			}
-		}
+	posts, postErr := getUserPosts(p, userChannels, &dateSince)
+	if postErr != nil {
+		return nil, postErr.Error()
 	}
 
 	userPosts := filterUserChannelMentions(posts, post.UserId)
@@ -96,11 +72,14 @@ func (p *TimeoutUsersPlugin) MessageWillBePosted(_ *plugin.Context, post *model.
 		return nil, fmt.Sprintf("Couldn't get user with id %s", post.UserId)
 	}
 
-	if len(userPosts) > p.configuration.ChannelMentionsThreshold {
+	if len(userPosts) > 0 && len(userPosts) > p.configuration.ChannelMentionsThreshold {
 		sortPostsByCreationDate(userPosts)
 		mostRecent := userPosts[0]
 		timeoutExpiring := time.UnixMilli(mostRecent.CreateAt).Add(time.Duration(p.configuration.UserTimeoutInSeconds) * time.Second)
-		remainingTimeout := timeoutExpiring.Sub(time.Now())
+		remainingTimeout := time.Until(timeoutExpiring)
+		if remainingTimeout < 0 {
+			return post, ""
+		}
 		err := p.createEphemeralPost(timeoutExpiring, post.UserId, post.ChannelId, user)
 		if err != nil {
 			p.API.LogError("Couldn't post ephemeral message for message rejection")
@@ -134,7 +113,7 @@ func (p *TimeoutUsersPlugin) createEphemeralPost(expiring time.Time, user, chann
 	if err != nil {
 		return errors.New("couldn't get bundle path")
 	}
-	locale, err := i18n.GetTranslationFuncForDir(path.Join(bundle, "assets", "i18n"))
+	locale, _ := i18n.GetTranslationFuncForDir(path.Join(bundle, "assets", "i18n"))
 	T := locale(sender.Locale)
 	post := model.Post{
 		UserId:    user,
@@ -156,4 +135,37 @@ func filterChannelWideMentions(message string) bool {
 		return true
 	}
 	return false
+}
+
+func getUserPosts(p *TimeoutUsersPlugin, channels []*model.ChannelMember, dateSince *time.Time) ([]*model.Post, error) {
+	posts := make([]*model.Post, 0)
+
+	for _, channel := range channels {
+		res, err := p.API.GetPostsSince(channel.ChannelId, dateSince.Unix())
+		if err != nil {
+			p.API.LogError("Couldn't get messages in channel", mlog.Field{
+				Type:   logr.ErrorType,
+				String: err.Error(),
+			})
+			return nil, fmt.Errorf("couldn't get messages in channel %s", channel.ChannelId)
+		}
+		for _, v := range res.Posts {
+			posts = append(posts, v)
+		}
+		for {
+			page := 0
+			if !res.HasNext {
+				break
+			}
+			res, err = p.API.GetPostsAfter(channel.ChannelId, res.NextPostId, page, 1000)
+			if err != nil {
+				p.API.LogError(fmt.Sprintf("Couldn't get posts in channel after %s", res.NextPostId))
+				return nil, fmt.Errorf("couldn't get posts in channel after %s", res.NextPostId)
+			}
+			for _, v := range res.Posts {
+				posts = append(posts, v)
+			}
+		}
+	}
+	return posts, nil
 }
